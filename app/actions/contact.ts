@@ -1,22 +1,11 @@
 'use server'
 
 import { Resend } from 'resend'
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+import { validateContactForm } from './validateContactForm'
 
 export type ContactFormState = {
   status: 'idle' | 'success' | 'error'
   message: string
-}
-
-export function validateContactForm(data: { name: string; email: string; message: string }): string | null {
-  if (!data.name.trim() || !data.email.trim() || !data.message.trim()) {
-    return 'Please fill in every field.'
-  }
-  if (!EMAIL_PATTERN.test(data.email.trim())) {
-    return 'Please enter a valid email address.'
-  }
-  return null
 }
 
 export async function sendContactMessage(

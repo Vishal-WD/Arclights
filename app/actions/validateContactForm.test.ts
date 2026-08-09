@@ -1,6 +1,6 @@
-// app/actions/contact.test.ts
+// app/actions/validateContactForm.test.ts
 import { describe, it, expect } from 'vitest'
-import { validateContactForm } from './contact'
+import { validateContactForm } from './validateContactForm'
 
 describe('validateContactForm', () => {
   it('returns an error when any field is empty', () => {
