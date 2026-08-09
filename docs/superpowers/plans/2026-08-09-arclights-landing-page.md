@@ -22,6 +22,7 @@
 - Splash intro (`Arclights-intro.mp4`) plays once per `sessionStorage`, is skippable after ~1s, and is skipped entirely when `prefers-reduced-motion: reduce` is set (CLAUDE.md, Splash Intro).
 - Every animation (arc motion, marquee, splash) must respect `prefers-reduced-motion` — check via Framer Motion's `useReducedMotion()` or `window.matchMedia`.
 - Node package manager: npm (lockfile `package-lock.json`).
+- Contact form (Task 15) delivers to `arclights.techteam@gmail.com` via Resend — reproduce this address exactly. The real `RESEND_API_KEY` lives only in `.env.local` (gitignored); never write it into any tracked file, the plan, or commit messages.
 
 ---
 
@@ -1754,22 +1755,278 @@ git commit -m "feat: add Team preview section"
 
 ---
 
-## Task 15: Project CTA Section
+## Task 15: Contact Form, Email Integration & Project CTA Section
 
 **Files:**
+- Modify: `package.json` (add `resend` dependency via `npm install`)
+- Create: `.env.local.example` (already exists — verify content, do not overwrite with different content)
+- Create: `app/actions/contact.ts`
+- Test: `app/actions/contact.test.ts`
+- Create: `components/ContactForm.tsx`
+- Test: `components/ContactForm.test.tsx`
 - Create: `components/ProjectCTA.tsx`
 - Test: `components/ProjectCTA.test.tsx`
 
 **Interfaces:**
-- Produces: `ProjectCTA` component (no props), renders section with `id="contact"` (the navbar's `Contact` link target and hero/navbar `Start a Project` link target from Tasks 5–6).
+- Produces: `validateContactForm(data: { name: string; email: string; message: string }): string | null` and `sendContactMessage(prevState: ContactFormState, formData: FormData): Promise<ContactFormState>` from `app/actions/contact.ts`, consumed by `ContactForm`.
+- Produces: `ContactForm` component (no props), consumed by `ProjectCTA`.
+- Produces: `ProjectCTA` component (no props), renders section with `id="contact"` (the navbar's `Contact` link target from Task 5). Consumed by Task 17's page assembly.
+- Consumes: `RESEND_API_KEY` environment variable, already present in `.env.local` (gitignored, not part of this task) with a real key. `.env.local.example` documents the variable name for anyone setting up the project without the real key.
 
-- [ ] **Step 1: Write the failing test**
+**Global constraint for this task:** the target recipient email is `arclights.techteam@gmail.com` — reproduce exactly, no placeholder domain.
+
+- [ ] **Step 1: Install the `resend` package**
+
+Run: `npm install resend`
+Expected: `resend` appears in `package.json` dependencies and `package-lock.json` updates.
+
+- [ ] **Step 2: Verify `.env.local.example` exists with the expected content**
+
+It should already exist at the project root with exactly this content:
+
+```
+RESEND_API_KEY=your_resend_api_key_here
+```
+
+If it's missing, create it with that exact content. Do not read or modify `.env.local` (the real key) — it is gitignored and out of scope for this task.
+
+- [ ] **Step 3: Write the failing test for the validation function**
+
+```typescript
+// app/actions/contact.test.ts
+import { describe, it, expect } from 'vitest'
+import { validateContactForm } from './contact'
+
+describe('validateContactForm', () => {
+  it('returns an error when any field is empty', () => {
+    expect(validateContactForm({ name: '', email: 'a@b.com', message: 'hi' })).toBe(
+      'Please fill in every field.'
+    )
+    expect(validateContactForm({ name: 'A', email: '', message: 'hi' })).toBe(
+      'Please fill in every field.'
+    )
+    expect(validateContactForm({ name: 'A', email: 'a@b.com', message: '' })).toBe(
+      'Please fill in every field.'
+    )
+  })
+
+  it('returns an error for an invalid email address', () => {
+    expect(validateContactForm({ name: 'A', email: 'not-an-email', message: 'hi' })).toBe(
+      'Please enter a valid email address.'
+    )
+  })
+
+  it('returns null when all fields are valid', () => {
+    expect(validateContactForm({ name: 'A', email: 'a@b.com', message: 'hi' })).toBeNull()
+  })
+})
+```
+
+- [ ] **Step 4: Run test to verify it fails**
+
+Run: `npm test -- app/actions/contact.test.ts`
+Expected: FAIL with "Cannot find module './contact'"
+
+- [ ] **Step 5: Write `app/actions/contact.ts`**
+
+```typescript
+'use server'
+
+import { Resend } from 'resend'
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+export type ContactFormState = {
+  status: 'idle' | 'success' | 'error'
+  message: string
+}
+
+export function validateContactForm(data: { name: string; email: string; message: string }): string | null {
+  if (!data.name.trim() || !data.email.trim() || !data.message.trim()) {
+    return 'Please fill in every field.'
+  }
+  if (!EMAIL_PATTERN.test(data.email.trim())) {
+    return 'Please enter a valid email address.'
+  }
+  return null
+}
+
+export async function sendContactMessage(
+  _prevState: ContactFormState,
+  formData: FormData
+): Promise<ContactFormState> {
+  const name = formData.get('name')?.toString().trim() ?? ''
+  const email = formData.get('email')?.toString().trim() ?? ''
+  const message = formData.get('message')?.toString().trim() ?? ''
+
+  const validationError = validateContactForm({ name, email, message })
+  if (validationError) {
+    return { status: 'error', message: validationError }
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY)
+
+  try {
+    await resend.emails.send({
+      from: 'Arclights Contact Form <onboarding@resend.dev>',
+      to: 'arclights.techteam@gmail.com',
+      replyTo: email,
+      subject: `New project inquiry from ${name}`,
+      text: `From: ${name} <${email}>\n\n${message}`,
+    })
+    return { status: 'success', message: "Thanks — we'll be in touch soon." }
+  } catch {
+    return { status: 'error', message: 'Something went wrong. Please email us directly instead.' }
+  }
+}
+```
+
+- [ ] **Step 6: Run test to verify it passes**
+
+Run: `npm test -- app/actions/contact.test.ts`
+Expected: PASS (3 tests)
+
+- [ ] **Step 7: Write the failing test for ContactForm**
+
+```tsx
+// components/ContactForm.test.tsx
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import ContactForm from './ContactForm'
+import { sendContactMessage } from '@/app/actions/contact'
+
+vi.mock('@/app/actions/contact', () => ({
+  sendContactMessage: vi.fn(),
+}))
+
+describe('ContactForm', () => {
+  it('renders name, email, and message fields with a submit button', () => {
+    render(<ContactForm />)
+    expect(screen.getByLabelText('Name')).toBeRequired()
+    expect(screen.getByLabelText('Email')).toBeRequired()
+    expect(screen.getByLabelText('Email')).toHaveAttribute('type', 'email')
+    expect(screen.getByLabelText('Message')).toBeRequired()
+    expect(screen.getByRole('button', { name: /send message/i })).toBeInTheDocument()
+  })
+
+  it('shows the success message returned by the server action after submitting', async () => {
+    vi.mocked(sendContactMessage).mockResolvedValue({
+      status: 'success',
+      message: "Thanks — we'll be in touch soon.",
+    })
+    const user = userEvent.setup()
+    render(<ContactForm />)
+
+    await user.type(screen.getByLabelText('Name'), 'Jane Doe')
+    await user.type(screen.getByLabelText('Email'), 'jane@example.com')
+    await user.type(screen.getByLabelText('Message'), 'Hello there')
+    await user.click(screen.getByRole('button', { name: /send message/i }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent("Thanks — we'll be in touch soon.")
+  })
+})
+```
+
+- [ ] **Step 8: Run test to verify it fails**
+
+Run: `npm test -- components/ContactForm.test.tsx`
+Expected: FAIL with "Cannot find module './ContactForm'"
+
+- [ ] **Step 9: Write `components/ContactForm.tsx`**
+
+```tsx
+'use client'
+
+import { useFormState, useFormStatus } from 'react-dom'
+import { sendContactMessage, type ContactFormState } from '@/app/actions/contact'
+
+const initialState: ContactFormState = { status: 'idle', message: '' }
+
+function SubmitButton() {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="rounded-lg bg-dark-gold px-6 py-3 text-sm font-medium text-black transition hover:bg-dark-silver disabled:opacity-60"
+    >
+      {pending ? 'Sending…' : 'Send Message'}
+    </button>
+  )
+}
+
+export default function ContactForm() {
+  const [state, formAction] = useFormState(sendContactMessage, initialState)
+
+  return (
+    <form action={formAction} className="mt-10 flex flex-col gap-4 text-left">
+      <div>
+        <label htmlFor="contact-name" className="text-xs tracking-label text-dark-body">
+          Name
+        </label>
+        <input
+          id="contact-name"
+          name="name"
+          type="text"
+          required
+          className="mt-1 w-full rounded-lg border border-dark-border bg-dark-surface px-4 py-2.5 text-sm text-dark-heading"
+        />
+      </div>
+      <div>
+        <label htmlFor="contact-email" className="text-xs tracking-label text-dark-body">
+          Email
+        </label>
+        <input
+          id="contact-email"
+          name="email"
+          type="email"
+          required
+          className="mt-1 w-full rounded-lg border border-dark-border bg-dark-surface px-4 py-2.5 text-sm text-dark-heading"
+        />
+      </div>
+      <div>
+        <label htmlFor="contact-message" className="text-xs tracking-label text-dark-body">
+          Message
+        </label>
+        <textarea
+          id="contact-message"
+          name="message"
+          required
+          rows={4}
+          className="mt-1 w-full rounded-lg border border-dark-border bg-dark-surface px-4 py-2.5 text-sm text-dark-heading"
+        />
+      </div>
+      <SubmitButton />
+      {state.status !== 'idle' && (
+        <p
+          role="status"
+          className={state.status === 'success' ? 'text-sm text-dark-gold' : 'text-sm text-red-400'}
+        >
+          {state.message}
+        </p>
+      )}
+    </form>
+  )
+}
+```
+
+- [ ] **Step 10: Run test to verify it passes**
+
+Run: `npm test -- components/ContactForm.test.tsx`
+Expected: PASS (2 tests)
+
+- [ ] **Step 11: Write the failing test for ProjectCTA**
 
 ```tsx
 // components/ProjectCTA.test.tsx
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import ProjectCTA from './ProjectCTA'
+
+vi.mock('@/app/actions/contact', () => ({
+  sendContactMessage: vi.fn(),
+}))
 
 describe('ProjectCTA', () => {
   it('renders the small text, heading, and supporting copy', () => {
@@ -1781,10 +2038,13 @@ describe('ProjectCTA', () => {
     expect(screen.getByText(/Whether you're starting with an idea/i)).toBeInTheDocument()
   })
 
-  it('renders the primary and secondary CTAs', () => {
+  it('renders the contact form and the direct email fallback', () => {
     render(<ProjectCTA />)
-    expect(screen.getByRole('link', { name: /start a project/i })).toBeInTheDocument()
-    expect(screen.getByText(/hello@arclights/i)).toBeInTheDocument()
+    expect(screen.getByLabelText('Name')).toBeInTheDocument()
+    expect(screen.getByLabelText('Email')).toBeInTheDocument()
+    expect(screen.getByLabelText('Message')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /send message/i })).toBeInTheDocument()
+    expect(screen.getByText(/arclights\.techteam@gmail\.com/i)).toBeInTheDocument()
   })
 
   it('has the #contact anchor id and a dark background', () => {
@@ -1796,18 +2056,20 @@ describe('ProjectCTA', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 12: Run test to verify it fails**
 
 Run: `npm test -- components/ProjectCTA.test.tsx`
 Expected: FAIL with "Cannot find module './ProjectCTA'"
 
-- [ ] **Step 3: Write `components/ProjectCTA.tsx`**
+- [ ] **Step 13: Write `components/ProjectCTA.tsx`**
 
 ```tsx
+import ContactForm from './ContactForm'
+
 export default function ProjectCTA() {
   return (
     <section id="contact" className="bg-black px-6 py-24 text-dark-heading">
-      <div className="mx-auto max-w-3xl text-center">
+      <div className="mx-auto max-w-xl text-center">
         <p className="text-xs font-semibold tracking-label text-dark-gold">HAVE SOMETHING IN MIND?</p>
         <h2 className="mt-4 text-3xl font-semibold md:text-5xl">
           Let&apos;s turn it into something real.
@@ -1817,32 +2079,30 @@ export default function ProjectCTA() {
           solving, tell us what you&apos;re trying to build.
         </p>
 
-        <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <a
-            href="mailto:hello@arclights.tech"
-            className="rounded-lg bg-dark-gold px-6 py-3 text-sm font-medium text-black transition hover:bg-dark-silver"
-          >
-            Start a Project →
-          </a>
-          <span className="text-sm text-dark-body">hello@arclights...</span>
-        </div>
+        <ContactForm />
+
+        <p className="mt-6 text-xs text-dark-body/70">
+          Prefer email? Reach us directly at arclights.techteam@gmail.com
+        </p>
       </div>
     </section>
   )
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 14: Run test to verify it passes**
 
 Run: `npm test -- components/ProjectCTA.test.tsx`
 Expected: PASS (3 tests)
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 15: Commit**
 
 ```bash
-git add components/ProjectCTA.tsx components/ProjectCTA.test.tsx
-git commit -m "feat: add dark Project CTA section"
+git add package.json package-lock.json .env.local.example app/actions/contact.ts app/actions/contact.test.ts components/ContactForm.tsx components/ContactForm.test.tsx components/ProjectCTA.tsx components/ProjectCTA.test.tsx
+git commit -m "feat: add Resend-backed contact form and wire it into the Project CTA section"
 ```
+
+**Note:** `.env.local` (the real API key) must NOT be committed — it is already gitignored via `.env*.local` in `.gitignore` from Task 1. Do not add it to git under any circumstances.
 
 ---
 
@@ -2065,7 +2325,7 @@ git commit -m "feat: assemble full landing page behind splash intro"
 - [ ] **Step 1: Run full test suite**
 
 Run: `npm test`
-Expected: all component test files pass (Tasks 2, 4–16 — 30+ tests total).
+Expected: all component test files pass (Tasks 2, 4–16 — 35+ tests total).
 
 - [ ] **Step 2: Run lint**
 
@@ -2080,6 +2340,10 @@ Expected: succeeds with no type errors.
 - [ ] **Step 4: Cross-check against CLAUDE.md Global Constraints**
 
 Manually confirm: no fake client logos/stats anywhere, no founder degrees on the page, nav has exactly six items, CTA section is dark or graphite-on-ivory buttons only (never pill-shaped — inspect computed `border-radius` on a button), gold is visually an accent not a fill (rough visual scan, not a pixel count).
+
+- [ ] **Step 4b: Manually verify the contact form end-to-end**
+
+With `npm run dev` running and `.env.local` populated with a real `RESEND_API_KEY`, fill out the Connect With Us form (Name, Email, Message) and submit. Confirm the button shows "Sending…" then a success message appears, and that an email actually arrives at arclights.techteam@gmail.com (check spam folder too, since `onboarding@resend.dev` is Resend's shared testing sender and may be filtered until a custom domain is verified). If no email arrives after a few minutes, check the terminal running `npm run dev` for a thrown/logged error from the Resend API call and report it — do not silently mark this step passed without confirming actual delivery or a clear, explainable reason it can't be verified right now (e.g. key not yet configured).
 
 - [ ] **Step 5: Commit (if any fixes were needed)**
 

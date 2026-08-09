@@ -21,6 +21,7 @@ Avoid: student project, crypto startup, gaming company, generic AI agency, luxur
 - **Fonts**: Manrope via `next/font` (self-hosted, not a render-blocking Google Fonts `<link>`)
 - **Deployment target**: Vercel (Next.js default) — confirm with user before first deploy
 - **Images/video**: use `next/image` for the logos; the intro video is a native `<video>` element (see Splash Intro below), not `next/image`
+- **Email**: Resend (`resend` npm package) powers the Connect With Us contact form via a Next.js Server Action (`app/actions/contact.ts`). Requires a `RESEND_API_KEY` environment variable — set in `.env.local` (gitignored), never committed. See `.env.local.example` for the required variable name.
 
 ## Brand Assets
 
@@ -220,15 +221,16 @@ Do not place the full About page content on the landing page — only a preview.
 
 Do not lead with educational qualifications (MCA / B.Tech CSE) on the landing page — that belongs on the full About page. Clients care about capability, not credentials.
 
-## 11. CTA Section
+## 11. CTA Section — Connect With Us
 
 Bold, dark section even though the overall site is light.
 
 - Small text: `HAVE SOMETHING IN MIND?`
 - Heading: "Let's turn it into something real."
 - Supporting text: "Whether you're starting with an idea, an existing workflow, or a problem that needs solving, tell us what you're trying to build."
-- Button: `Start a Project →`
-- Secondary: `hello@arclights...`
+- **Real working contact form** (not a placeholder mailto link): Name, Email, Message fields, submitting via a Next.js Server Action to Resend, delivered to `arclights.techteam@gmail.com`. Submissions are received directly — no third-party inbox/portal, just email.
+- Submit button label: `Send Message`; shows a `Sending…` state while pending and a success/error message after
+- Small fallback line beneath the form: direct email address as a backup for anyone who prefers not to use the form
 - Future additions: WhatsApp / Calendly / consultation booking
 
 ## 12. Footer
