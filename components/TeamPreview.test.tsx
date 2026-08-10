@@ -7,10 +7,10 @@ describe('TeamPreview', () => {
   it('renders the heading and both team members with their roles', () => {
     render(<TeamPreview />)
     expect(screen.getByRole('heading', { name: 'The People Behind Arclights' })).toBeInTheDocument()
-    expect(screen.getByText('Dharanyaa')).toBeInTheDocument()
-    expect(screen.getByText('Software · QA · Automation')).toBeInTheDocument()
     expect(screen.getByText('Vishal')).toBeInTheDocument()
     expect(screen.getByText('Development · Software · Technology')).toBeInTheDocument()
+    expect(screen.getByText('Dharanyaa')).toBeInTheDocument()
+    expect(screen.getByText('Software · QA · Automation')).toBeInTheDocument()
   })
 
   it('does not mention founder degrees', () => {
