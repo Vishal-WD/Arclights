@@ -34,12 +34,13 @@ export default function SplashIntro({ onDone }: { onDone: () => void }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ivory">
       <video
         data-testid="splash-video"
-        className="h-full w-full object-cover"
+        className="h-full w-full object-contain"
         src={ASSETS.introVideo}
         autoPlay
         muted
         playsInline
         onEnded={finish}
+        onError={finish}
       />
       {phase === 'skippable' && (
         <button

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import SplashIntro from '@/components/SplashIntro'
 import Navbar from '@/components/Navbar'
 import Hero from '@/components/Hero'
@@ -25,26 +25,20 @@ export default function Home() {
         {!splashDone && <SplashIntro onDone={() => setSplashDone(true)} />}
       </AnimatePresence>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: splashDone ? 1 : 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        <Navbar />
-        <main>
-          <Hero />
-          <TrustStrip />
-          <WhatWeDo />
-          <SelectedWork />
-          <WhyArclights />
-          <HowWeWork />
-          <Capabilities />
-          <AboutPreview />
-          <TeamPreview />
-          <ProjectCTA />
-        </main>
-        <Footer />
-      </motion.div>
+      <Navbar />
+      <main>
+        <Hero />
+        <TrustStrip />
+        <WhatWeDo />
+        <SelectedWork />
+        <WhyArclights />
+        <HowWeWork />
+        <Capabilities />
+        <AboutPreview />
+        <TeamPreview />
+        <ProjectCTA />
+      </main>
+      <Footer />
     </>
   )
 }
