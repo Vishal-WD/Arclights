@@ -32,7 +32,8 @@ export async function sendContactMessage(
       text: `From: ${name} <${email}>\n\n${message}`,
     })
     return { status: 'success', message: "Thanks — we'll be in touch soon." }
-  } catch {
+  } catch (error) {
+    console.error('Failed to send contact form email:', error)
     return { status: 'error', message: 'Something went wrong. Please email us directly instead.' }
   }
 }
