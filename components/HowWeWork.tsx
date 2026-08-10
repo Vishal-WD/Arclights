@@ -42,7 +42,7 @@ export default function HowWeWork() {
             <path
               d="M 0 50 C 150 10, 250 50, 400 30 C 550 10, 650 50, 800 30 C 900 15, 950 40, 1000 20"
               fill="none"
-              stroke="#C99A54"
+              className="stroke-gold"
               strokeWidth="2"
             />
           </svg>

@@ -38,7 +38,7 @@ export default function Footer() {
             LinkedIn ↗
           </a>
           <a
-            href="https://github.com"
+            href="https://github.com/Vishal-WD"
             target="_blank"
             rel="noreferrer"
             className="transition hover:text-dark-gold"

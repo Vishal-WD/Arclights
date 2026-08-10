@@ -28,7 +28,7 @@ export default function Hero() {
           strokeWidth="6"
           strokeLinecap="round"
           initial={{ pathLength: 0, opacity: 0 }}
-          animate={reducedMotion ? { pathLength: 1, opacity: 1 } : { pathLength: 1, opacity: 1 }}
+          animate={{ pathLength: 1, opacity: 1 }}
           transition={reducedMotion ? { duration: 0 } : { duration: 2.4, ease: 'easeInOut' }}
         />
       </svg>

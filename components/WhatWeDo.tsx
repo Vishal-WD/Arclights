@@ -52,7 +52,6 @@ export default function WhatWeDo() {
               key={service.number}
               className="group rounded-xl border border-border bg-surface p-8 transition hover:-translate-y-1 hover:border-gold"
             >
-              <p className="text-sm font-semibold text-gold">{service.number}</p>
               <h3 className="mt-2 text-xl font-semibold">
                 {service.number} — {service.title}
               </h3>
