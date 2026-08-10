@@ -23,6 +23,16 @@ export default function ContactForm() {
 
   return (
     <form action={formAction} className="mt-10 flex flex-col gap-4 text-left">
+      <div className="absolute left-[-9999px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
+        <label htmlFor="contact-website">Website</label>
+        <input
+          id="contact-website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+        />
+      </div>
       <div>
         <label htmlFor="contact-name" className="text-xs tracking-label text-dark-body">
           Name
@@ -60,14 +70,18 @@ export default function ContactForm() {
         />
       </div>
       <SubmitButton />
-      {state.status !== 'idle' && (
-        <p
-          role="status"
-          className={state.status === 'success' ? 'text-sm text-dark-gold' : 'text-sm text-red-400'}
-        >
-          {state.message}
-        </p>
-      )}
+      <p
+        role="status"
+        className={
+          state.status === 'success'
+            ? 'text-sm text-dark-gold'
+            : state.status === 'error'
+              ? 'text-sm text-red-400'
+              : 'sr-only'
+        }
+      >
+        {state.message}
+      </p>
     </form>
   )
 }
