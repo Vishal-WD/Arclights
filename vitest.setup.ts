@@ -5,10 +5,17 @@ import { vi } from 'vitest'
 // Suppress the test-only React 18 warning about function-valued form action props (see polyfill note below).
 const originalConsoleError = console.error
 console.error = (...args: Parameters<typeof console.error>) => {
-  const [firstArg] = args
-  // Suppress only React's "Invalid value for prop `action` on <form> tag" warning.
-  // Match the start and a specific substring to avoid suppressing other prop warnings.
-  if (typeof firstArg === 'string' && firstArg.startsWith('Warning: Invalid value for prop') && firstArg.includes('tag')) {
+  const [message, propName, tagName] = args
+  // React logs this as a %s-templated string with separate interpolation args, e.g.:
+  //   console.error('Warning: Invalid value for prop %s on <%s> tag...', '`action`', 'form', ...)
+  // Suppress only this exact warning (prop `action` on a <form> tag) — check the
+  // un-interpolated template AND the specific prop/tag args, not a pre-substituted string.
+  if (
+    typeof message === 'string' &&
+    message.includes('Invalid value for prop %s on <%s> tag') &&
+    propName === '`action`' &&
+    tagName === 'form'
+  ) {
     return
   }
   originalConsoleError(...args)
