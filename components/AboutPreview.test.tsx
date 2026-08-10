@@ -10,6 +10,7 @@ describe('AboutPreview', () => {
       screen.getByRole('heading', { name: 'Small team. Serious about what we build.' })
     ).toBeInTheDocument()
     expect(screen.getByText(/Arclights was started by two people/i)).toBeInTheDocument()
+    expect(screen.getByText('Built to solve. Ready to grow.')).toBeInTheDocument()
   })
 
   it('renders the Our Story CTA', () => {

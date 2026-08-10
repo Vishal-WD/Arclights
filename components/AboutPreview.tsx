@@ -17,6 +17,7 @@ export default function AboutPreview() {
         >
           Our Story →
         </a>
+        <p className="mt-8 text-sm font-medium text-gold">Built to solve. Ready to grow.</p>
       </div>
     </section>
   )
