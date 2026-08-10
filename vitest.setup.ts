@@ -2,6 +2,18 @@ import '@testing-library/jest-dom/vitest'
 import * as React from 'react'
 import { vi } from 'vitest'
 
+// Suppress the test-only React 18 warning about function-valued form action props (see polyfill note below).
+const originalConsoleError = console.error
+console.error = (...args: Parameters<typeof console.error>) => {
+  const [firstArg] = args
+  // Suppress only React's "Invalid value for prop `action` on <form> tag" warning.
+  // Match the start and a specific substring to avoid suppressing other prop warnings.
+  if (typeof firstArg === 'string' && firstArg.startsWith('Warning: Invalid value for prop') && firstArg.includes('tag')) {
+    return
+  }
+  originalConsoleError(...args)
+}
+
 // --- Test-only polyfill: useFormState / useFormStatus / <form action={fn}> --
 //
 // Why this exists: the pinned npm package "react-dom" (^18.3.0, currently
